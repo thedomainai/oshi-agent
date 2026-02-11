@@ -17,7 +17,7 @@ published: true
 **プロジェクトURL**
 
 - デモサイト: https://oshi-agent-frontend-544358958632.asia-northeast1.run.app
-- GitHubリポジトリ: https://github.com/yuta-nakabayashi/oshi-agent
+- GitHubリポジトリ: https://github.com/thedomainai/oshi-agent
 
 ## デモ動画
 
@@ -249,10 +249,10 @@ class RootAgent:
     async def run_scout_workflow(self, oshi_id: str) -> dict:
         oshi = self.oshi_repo.get_by_id(oshi_id)
 
-        # Scout Agent: 情報収集
+        # Scout Agent: 情報収集（カテゴリで検索キーワードを最適化）
         new_info_ids = await self.scout_agent.collect_info(
             oshi_id=oshi.id, oshi_name=oshi.name,
-            official_url=oshi.official_url,
+            official_url=oshi.official_url, category=oshi.category,
         )
 
         # Priority Agent: 重要度判定（新規情報がある場合のみ）
@@ -314,41 +314,54 @@ scout_workflow = SequentialAgent(
 
 ### Scout Agent: 情報の自律収集
 
-Scout Agent は推しの最新情報を Google Custom Search API で定期的に収集します。**Cloud Scheduler で1時間ごとに自動実行**されるため、ユーザーの操作は不要です。
+Scout Agent は推しの最新情報を Google Custom Search API で収集します。**Cloud Scheduler による定期実行エンドポイント**を備えており、ユーザーの操作なしで自動巡回が可能です。
 
 ```python
 class ScoutAgent:
     """推しの情報を自律的に収集するエージェント"""
 
-    async def collect_info(self, oshi_id: str, oshi_name: str,
-                           official_url: str = None) -> list[str]:
-        # 検索クエリを構築
-        query = f"{oshi_name} 最新情報"
+    # カテゴリ別の追加検索キーワード
+    CATEGORY_KEYWORDS = {
+        "アイドル": ["ライブ チケット", "イベント 握手会"],
+        "アーティスト": ["ライブ チケット", "新曲 アルバム"],
+        "声優": ["イベント チケット", "出演 アニメ"],
+        "VTuber": ["配信 コラボ", "グッズ 発売"],
+        # ...
+    }
+
+    async def collect_info(self, oshi_id, oshi_name,
+                           official_url=None, category=None):
+        # カテゴリに応じた複数クエリを生成
+        queries = [f"{oshi_name} 最新情報"]
+        if category:
+            for kw in self.CATEGORY_KEYWORDS.get(category, []):
+                queries.append(f"{oshi_name} {kw}")
         if official_url:
-            query += f" OR site:{official_url}"
+            queries.append(f"site:{official_url}")
 
-        # Google 検索を実行
-        search_results = self.search_client.search(query, num_results=10)
+        # 複数クエリで検索し、URL 単位で重複排除してマージ
+        search_results, seen_urls = [], set()
+        for query in queries:
+            for r in self.search_client.search(query, num_results=10):
+                if r["link"] not in seen_urls:
+                    seen_urls.add(r["link"])
+                    search_results.append(r)
 
+        # DB に保存（既存 URL はスキップ）
         new_info_ids = []
         for result in search_results:
-            # URL 重複チェック
             if self.info_repo.find_by_url(oshi_id, result["link"]):
                 continue
-
-            # 新規情報として保存
             info = self.info_repo.create(CollectedInfoCreate(
-                title=result["title"],
-                url=result["link"],
-                snippet=result.get("snippet"),
-                oshi_id=oshi_id,
+                title=result["title"], url=result["link"],
+                snippet=result.get("snippet"), oshi_id=oshi_id,
             ))
             new_info_ids.append(info.id)
-
         return new_info_ids
 ```
 
 **設計のポイント**:
+- **カテゴリ別キーワード**で検索精度を向上（アイドルなら「ライブ チケット」、VTuber なら「配信 コラボ」）
 - URL 単位の重複排除で、同じ情報を二重に保存しない
 - 公式 URL が登録されている場合、`site:` 演算子で公式情報を優先取得
 - `tenacity` ライブラリによる Exponential Backoff でAPI制限に対応
@@ -593,6 +606,6 @@ Cloud Run はコンテナの前段にリバースプロキシを配置するた�
 
 ## リンク
 
-- **GitHubリポジトリ**: https://github.com/yuta-nakabayashi/oshi-agent
+- **GitHubリポジトリ**: https://github.com/thedomainai/oshi-agent
 - **デモサイト**: https://oshi-agent-frontend-544358958632.asia-northeast1.run.app
 - **ハッカソン**: https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol4
