@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google'
 import type { NextAuthConfig } from 'next-auth'
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -13,7 +14,8 @@ export const authConfig: NextAuthConfig = {
     signIn: '/login',
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request }) {
+      const { nextUrl } = request
       const isLoggedIn = !!auth?.user
       const isOnDashboard = nextUrl.pathname.startsWith('/timeline') ||
         nextUrl.pathname.startsWith('/oshi') ||
@@ -27,7 +29,8 @@ export const authConfig: NextAuthConfig = {
         if (isLoggedIn) return true
         return false
       } else if (isLoggedIn) {
-        return Response.redirect(new URL('/timeline', nextUrl))
+        const baseUrl = process.env.NEXTAUTH_URL || nextUrl.origin
+        return Response.redirect(new URL('/timeline', baseUrl))
       }
       return true
     },
