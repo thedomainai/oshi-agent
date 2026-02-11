@@ -1,4 +1,6 @@
 """FastAPIメインアプリケーション"""
+import os
+
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -8,6 +10,10 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.logging_config import configure_logging
 from app.routers import agent_router, health_router
+
+# ADK が参照する GOOGLE_API_KEY を既存の GEMINI_API_KEY から設定
+if not os.environ.get("GOOGLE_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = settings.gemini_api_key
 
 # ロギング設定
 configure_logging()

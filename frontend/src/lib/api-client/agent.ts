@@ -37,6 +37,21 @@ interface GenerateBudgetReportResponse {
   }
 }
 
+interface SummaryResponse {
+  oshi_id: string
+  oshi_name: string
+  collected_count: number
+  summary: string
+}
+
+export async function triggerSummaryAgent(userId: string, oshiId: string): Promise<SummaryResponse> {
+  return apiRequest<SummaryResponse>('/agent/summary', {
+    method: 'POST',
+    userId,
+    body: JSON.stringify({ oshi_id: oshiId }),
+  })
+}
+
 export async function triggerScoutAgent(userId: string, oshiId: string): Promise<TriggerAgentResponse> {
   return apiRequest<TriggerAgentResponse>('/api/agents/scout', {
     method: 'POST',

@@ -48,29 +48,53 @@ class GeminiClient:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
-    def classify_priority(self, title: str, url: str) -> Priority:
+    def classify_priority(
+        self, title: str, url: str, snippet: Optional[str] = None
+    ) -> Priority:
         """情報の重要度を判定
 
         Args:
             title: 情報のタイトル
             url: 情報のURL
+            snippet: 情報のスニペット（追加コンテキスト）
 
         Returns:
             重要度（urgent, important, normal）
         """
         try:
-            prompt = f"""以下の推し活情報の重要度を判定してください。
+            snippet_section = f"\n概要: {snippet}" if snippet else ""
+
+            prompt = f"""あなたは推し活（ファン活動）の情報を分析する専門家です。
+以下の情報の重要度を、ファンの視点で判定してください。
 
 タイトル: {title}
-URL: {url}
+URL: {url}{snippet_section}
 
-判定基準:
-- urgent: チケット販売開始、申込期限が近い、緊急のお知らせ
-- important: 新イベント告知、重要な発表、CD/DVD発売情報
-- normal: 一般的な情報、ブログ更新、日常的な投稿
+## 判定基準（見逃した場合のダメージで分類）
 
-以下のJSON形式で回答してください:
-{{"priority": "urgent|important|normal", "reason": "判定理由"}}
+**urgent（見逃すと取り返しがつかない）**:
+- チケットの先行販売・一般販売の開始や申込期限
+- 抽選申込の受付開始・締切
+- 限定グッズ・限定商品の発売開始
+- ファンクラブの入会・更新期限
+- 放送・配信の時間指定イベント（生放送など）
+- 期間限定のキャンペーン・コラボ
+
+**important（知っておくべき重要情報）**:
+- 新イベント・ライブ・コンサートの告知
+- 新曲・アルバム・DVD/Blu-rayの発売情報
+- テレビ・ラジオ・雑誌への出演情報
+- グループやメンバーに関する重要な発表
+- ファンミーティングの開催告知
+
+**normal（日常的な情報）**:
+- ブログ・SNSの日常的な更新
+- 過去のイベントのレポート・感想記事
+- ニュースのまとめ記事
+- ファンの口コミ・レビュー
+
+以下のJSON形式のみで回答してください:
+{{"priority": "urgent|important|normal", "reason": "判定理由（20字以内）"}}
 """
 
             logger.info(
@@ -102,6 +126,70 @@ URL: {url}
             logger.error("classify_priority_failed", title=title, error=str(e))
             # エラー時はnormalを返す
             return Priority.NORMAL
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
+    )
+    def generate_oshi_summary(
+        self, oshi_name: str, infos: list[dict[str, Any]]
+    ) -> str:
+        """推しの最新活動サマリーを生成
+
+        Args:
+            oshi_name: 推しの名前
+            infos: 収集した情報のリスト
+
+        Returns:
+            活動サマリーテキスト
+        """
+        try:
+            if not infos:
+                return f"{oshi_name}さんに関する最新情報はまだ収集されていません。しばらくお待ちください。"
+
+            infos_text = "\n".join(
+                [
+                    f"- {info.get('title', '')} ({info.get('url', '')})"
+                    for info in infos[:10]
+                ]
+            )
+
+            prompt = f"""あなたは推し活（ファン活動）のアシスタントです。
+以下の収集情報をもとに、「{oshi_name}」の直近の活動サマリーを作成してください。
+
+## 収集した情報:
+{infos_text}
+
+## 作成ルール:
+- ファンが読んで嬉しくなるような、わかりやすいサマリーにしてください
+- 特に重要な情報（チケット、イベント、新作発表）があれば強調してください
+- 3〜5文で簡潔にまとめてください
+- 「〜ですね！」「〜しましょう！」のような親しみやすいトーンで書いてください
+"""
+
+            logger.info(
+                "generate_oshi_summary_start",
+                oshi_name=oshi_name,
+                info_count=len(infos),
+            )
+            response = self.model.generate_content(prompt)
+            summary = response.text.strip()
+
+            logger.info(
+                "generate_oshi_summary_success",
+                oshi_name=oshi_name,
+                summary_length=len(summary),
+            )
+            return summary
+
+        except Exception as e:
+            logger.error(
+                "generate_oshi_summary_failed",
+                oshi_name=oshi_name,
+                error=str(e),
+            )
+            return f"{oshi_name}さんの情報を収集しました。詳細はタイムラインをご確認ください。"
 
     @retry(
         stop=stop_after_attempt(3),

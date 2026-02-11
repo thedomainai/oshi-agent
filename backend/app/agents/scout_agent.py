@@ -24,8 +24,45 @@ class ScoutAgent:
         self.info_repo = info_repo
         self.search_client = search_client
 
+    # カテゴリ別の追加検索キーワード
+    CATEGORY_KEYWORDS: dict[str, list[str]] = {
+        "アイドル": ["ライブ チケット", "イベント 握手会"],
+        "アーティスト": ["ライブ チケット", "新曲 アルバム"],
+        "声優": ["イベント チケット", "出演 アニメ"],
+        "アニメ": ["放送 配信", "グッズ 発売"],
+        "俳優": ["舞台 チケット", "ドラマ 映画 出演"],
+        "お笑い": ["ライブ チケット", "テレビ 出演"],
+        "スポーツ": ["試合 チケット", "大会 出場"],
+        "VTuber": ["配信 コラボ", "グッズ 発売"],
+    }
+
+    def _build_queries(
+        self,
+        oshi_name: str,
+        category: Optional[str] = None,
+        official_url: Optional[str] = None,
+    ) -> list[str]:
+        """カテゴリに応じた検索クエリリストを生成"""
+        queries = [f"{oshi_name} 最新情報"]
+
+        # カテゴリ別キーワードで追加クエリ
+        if category:
+            keywords = self.CATEGORY_KEYWORDS.get(category, [])
+            for kw in keywords:
+                queries.append(f"{oshi_name} {kw}")
+
+        # 公式URL がある場合は site: クエリを追加
+        if official_url:
+            queries.append(f"site:{official_url}")
+
+        return queries
+
     async def collect_info(
-        self, oshi_id: str, oshi_name: str, official_url: Optional[str] = None
+        self,
+        oshi_id: str,
+        oshi_name: str,
+        official_url: Optional[str] = None,
+        category: Optional[str] = None,
     ) -> list[str]:
         """推しの情報を収集
 
@@ -33,6 +70,7 @@ class ScoutAgent:
             oshi_id: 推しID
             oshi_name: 推しの名前
             official_url: 公式URL（検索クエリに含める）
+            category: カテゴリ（検索キーワード最適化に使用）
 
         Returns:
             新規に作成された情報IDのリスト
@@ -42,15 +80,22 @@ class ScoutAgent:
                 "scout_collect_start",
                 oshi_id=oshi_id,
                 oshi_name=oshi_name,
+                category=category,
             )
 
-            # 検索クエリを構築
-            query = f"{oshi_name} 最新情報"
-            if official_url:
-                query += f" OR site:{official_url}"
+            # カテゴリに応じた検索クエリを構築
+            queries = self._build_queries(oshi_name, category, official_url)
 
-            # Google検索を実行
-            search_results = self.search_client.search(query, num_results=10)
+            # 複数クエリで検索して結果をマージ
+            search_results = []
+            seen_urls = set()
+            for query in queries:
+                results = self.search_client.search(query, num_results=10)
+                for r in results:
+                    url = r.get("link", "")
+                    if url not in seen_urls:
+                        seen_urls.add(url)
+                        search_results.append(r)
 
             if not search_results:
                 logger.info("scout_collect_no_results", oshi_id=oshi_id)

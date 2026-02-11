@@ -66,7 +66,7 @@ export function OshiForm({ initialData, onSubmit, submitLabel = '登録' }: Oshi
     setIsLoading(true)
     try {
       await onSubmit({ name, category, keywords, sources })
-      router.push('/timeline')
+      router.push('/dashboard')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : '登録に失敗しました')

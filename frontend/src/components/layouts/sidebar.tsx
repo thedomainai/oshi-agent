@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Calendar, DollarSign, Heart, Home, Menu, Settings, X, Map } from 'lucide-react'
+import { Calendar, DollarSign, Heart, LayoutDashboard, List, Menu, Settings, X, Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
 const navigation = [
-  { name: 'タイムライン', href: '/timeline', icon: Home },
+  { name: 'ダッシュボード', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'タイムライン', href: '/timeline', icon: List },
   { name: 'イベント', href: '/events', icon: Calendar },
   { name: '遠征プラン', href: '/trip-plans', icon: Map },
   { name: '支出管理', href: '/expenses', icon: DollarSign },

@@ -19,6 +19,21 @@ class OshiRepository:
         self.db = db
         self.collection = db.collection(self.COLLECTION_NAME)
 
+    def get_all(self) -> list[OshiModel]:
+        """全推しを取得（定期実行用）"""
+        try:
+            docs = self.collection.stream()
+            oshis = []
+            for doc in docs:
+                data = doc.to_dict()
+                data["id"] = doc.id
+                oshis.append(OshiModel(**data))
+            logger.info("get_all_oshis", count=len(oshis))
+            return oshis
+        except Exception as e:
+            logger.error("get_all_oshis_failed", error=str(e))
+            raise
+
     def get_all_by_user(self, user_id: str) -> list[OshiModel]:
         """ユーザーの全推しを取得"""
         try:

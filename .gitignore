@@ -18,3 +18,11 @@ Thumbs.db
 
 # Agent work directory
 .agent-work/
+
+# Claude Code
+.claude/
+
+# Work notes
+*.md.bak
+backend-env-command.md
+error.md

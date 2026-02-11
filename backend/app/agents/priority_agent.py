@@ -42,10 +42,11 @@ class PriorityAgent:
                     logger.warning("priority_judge_info_not_found", info_id=info_id)
                     continue
 
-                # Geminiで重要度判定
+                # Geminiで重要度判定（snippetがあれば追加コンテキストとして渡す）
                 priority = self.gemini_client.classify_priority(
                     title=info.title,
                     url=info.url,
+                    snippet=info.snippet,
                 )
 
                 # Firestoreを更新

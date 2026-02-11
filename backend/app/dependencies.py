@@ -124,6 +124,8 @@ def get_root_agent():
         oshi_repo=get_oshi_repository(),
         scout_agent=get_scout_agent(),
         priority_agent=get_priority_agent(),
+        gemini_client=get_gemini_client(),
+        info_repo=get_info_repository(),
     )
 
 

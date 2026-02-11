@@ -5,6 +5,8 @@ import structlog
 
 from app.agents.priority_agent import PriorityAgent
 from app.agents.scout_agent import ScoutAgent
+from app.external.gemini_client import GeminiClient
+from app.repositories.info_repository import InfoRepository
 from app.repositories.oshi_repository import OshiRepository
 
 logger = structlog.get_logger(__name__)
@@ -18,10 +20,14 @@ class RootAgent:
         oshi_repo: OshiRepository,
         scout_agent: ScoutAgent,
         priority_agent: PriorityAgent,
+        gemini_client: GeminiClient,
+        info_repo: InfoRepository,
     ):
         self.oshi_repo = oshi_repo
         self.scout_agent = scout_agent
         self.priority_agent = priority_agent
+        self.gemini_client = gemini_client
+        self.info_repo = info_repo
 
     async def run_scout_workflow(self, oshi_id: str) -> dict[str, Any]:
         """指定された推しのScoutワークフローを実行
@@ -51,6 +57,7 @@ class RootAgent:
                 oshi_id=oshi.id,
                 oshi_name=oshi.name,
                 official_url=oshi.official_url,
+                category=oshi.category,
             )
 
             # 2. Priority Agent: 重要度判定
@@ -83,8 +90,61 @@ class RootAgent:
             )
             raise
 
+    async def run_scout_and_summarize(self, oshi_id: str) -> dict[str, Any]:
+        """Scout実行後にサマリーを生成するワークフロー
+
+        推し登録直後に呼ばれ、初回の情報収集とサマリー生成を行う。
+
+        Args:
+            oshi_id: 推しID
+
+        Returns:
+            Scout結果 + サマリー
+        """
+        try:
+            logger.info("root_scout_and_summarize_start", oshi_id=oshi_id)
+
+            # 1. Scoutワークフローを実行
+            scout_result = await self.run_scout_workflow(oshi_id)
+
+            # 2. 収集された情報を取得してサマリー生成
+            oshi = self.oshi_repo.get_by_id(oshi_id)
+            if not oshi:
+                raise ValueError(f"Oshi not found: {oshi_id}")
+
+            infos = self.info_repo.get_all_by_oshi(oshi_id)
+            infos_data = [
+                {"title": info.title, "url": info.url, "snippet": info.snippet}
+                for info in infos[:10]
+            ]
+
+            summary = self.gemini_client.generate_oshi_summary(
+                oshi_name=oshi.name,
+                infos=infos_data,
+            )
+
+            result = {
+                **scout_result,
+                "summary": summary,
+            }
+
+            logger.info(
+                "root_scout_and_summarize_success",
+                oshi_id=oshi_id,
+                summary_length=len(summary),
+            )
+            return result
+
+        except Exception as e:
+            logger.error(
+                "root_scout_and_summarize_failed",
+                oshi_id=oshi_id,
+                error=str(e),
+            )
+            raise
+
     async def run_all_scouts(self) -> dict[str, Any]:
-        """全推しの情報収集を実行
+        """全推しの情報収集を実行（Cloud Scheduler から呼ばれる）
 
         Returns:
             実行結果（推しごとの収集件数など）
@@ -92,17 +152,44 @@ class RootAgent:
         try:
             logger.info("root_all_scouts_start")
 
-            # TODO: 全ユーザーの全推しを取得する実装
-            # 現在はシンプルに実装（user_idが必要）
-            # Cloud Schedulerから定期実行する際は、別途実装が必要
+            all_oshis = self.oshi_repo.get_all()
+
+            results = []
+            success_count = 0
+            error_count = 0
+
+            for oshi in all_oshis:
+                try:
+                    result = await self.run_scout_workflow(oshi.id)
+                    results.append(result)
+                    success_count += 1
+                except Exception as e:
+                    logger.error(
+                        "root_all_scouts_oshi_failed",
+                        oshi_id=oshi.id,
+                        oshi_name=oshi.name,
+                        error=str(e),
+                    )
+                    results.append({
+                        "oshi_id": oshi.id,
+                        "oshi_name": oshi.name,
+                        "error": str(e),
+                    })
+                    error_count += 1
 
             result = {
-                "message": "全推しスキャンは未実装です。各ユーザーの推しIDを指定してください。",
-                "total_oshis": 0,
-                "results": [],
+                "total_oshis": len(all_oshis),
+                "success_count": success_count,
+                "error_count": error_count,
+                "results": results,
             }
 
-            logger.info("root_all_scouts_success")
+            logger.info(
+                "root_all_scouts_success",
+                total=len(all_oshis),
+                success=success_count,
+                errors=error_count,
+            )
             return result
 
         except Exception as e:

@@ -20,6 +20,13 @@ from app.dependencies import (
 )
 from app.repositories.oshi_repository import OshiRepository
 
+# ADK は Python 3.10+ が必要。利用可能な場合のみインポート
+try:
+    from app.agents.adk_runner import run_scout_workflow_adk
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(
@@ -85,6 +92,21 @@ class TripResponse(BaseModel):
     plan_id: str
 
 
+class SummaryRequest(BaseModel):
+    """Summary生成リクエスト"""
+
+    oshi_id: str = Field(..., description="推しID")
+
+
+class SummaryResponse(BaseModel):
+    """Summary生成レスポンス"""
+
+    oshi_id: str
+    oshi_name: str
+    collected_count: int
+    summary: str
+
+
 class BudgetRequest(BaseModel):
     """Budget Agent実行リクエスト"""
 
@@ -142,6 +164,61 @@ async def run_scout(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+class AdkScoutResponse(BaseModel):
+    """ADK Scout Agent実行レスポンス"""
+
+    oshi_id: str
+    oshi_name: str
+    response: str
+    session_id: str
+
+
+@router.post("/scout-adk", response_model=AdkScoutResponse)
+async def run_scout_adk(
+    request: ScoutRequest,
+    user_id: str = Depends(get_user_id),
+    oshi_repo: OshiRepository = Depends(get_oshi_repository),
+):
+    """ADK版 Scout Agentを実行（LlmAgent + SequentialAgent による自律的なワークフロー）"""
+    if not ADK_AVAILABLE:
+        raise HTTPException(
+            status_code=501,
+            detail="ADK is not available in this environment",
+        )
+
+    try:
+        oshi = oshi_repo.get_by_id(request.oshi_id)
+        if not oshi or oshi.get("user_id") != user_id:
+            raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
+
+        logger.info(
+            "api_scout_adk_start",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+        )
+
+        result = await run_scout_workflow_adk(
+            oshi_id=request.oshi_id,
+            oshi_name=oshi.get("name", ""),
+            user_id=user_id,
+        )
+
+        logger.info(
+            "api_scout_adk_success",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+        )
+
+        return AdkScoutResponse(**result)
+
+    except ValueError as e:
+        logger.warning("api_scout_adk_not_found", error=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("api_scout_adk_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @router.post("/scout-all")
 async def run_scout_all(
     root_agent: RootAgent = Depends(get_root_agent),
@@ -157,6 +234,50 @@ async def run_scout_all(
 
     except Exception as e:
         logger.error("api_scout_all_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/summary", response_model=SummaryResponse)
+async def run_summary(
+    request: SummaryRequest,
+    user_id: str = Depends(get_user_id),
+    root_agent: RootAgent = Depends(get_root_agent),
+    oshi_repo: OshiRepository = Depends(get_oshi_repository),
+):
+    """Scout + Priority + サマリー生成を実行（推し登録直後の初回体験用）"""
+    try:
+        # ユーザーが推しの所有者であることを検証
+        oshi = oshi_repo.get_by_id(request.oshi_id)
+        if not oshi or oshi.get("user_id") != user_id:
+            raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
+
+        logger.info(
+            "api_summary_start",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+        )
+
+        result = await root_agent.run_scout_and_summarize(request.oshi_id)
+
+        logger.info(
+            "api_summary_success",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+            collected_count=result["collected_count"],
+        )
+
+        return SummaryResponse(
+            oshi_id=result["oshi_id"],
+            oshi_name=result["oshi_name"],
+            collected_count=result["collected_count"],
+            summary=result["summary"],
+        )
+
+    except ValueError as e:
+        logger.warning("api_summary_not_found", error=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("api_summary_failed", error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

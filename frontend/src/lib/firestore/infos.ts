@@ -42,6 +42,57 @@ export async function getInfos(userId: string, options: GetInfosOptions = {}): P
   })) as CollectedInfo[]
 }
 
+export async function getAlertInfos(userId: string): Promise<{ urgent: CollectedInfo[]; important: CollectedInfo[] }> {
+  const db = getFirestore()
+
+  const [urgentSnapshot, importantSnapshot] = await Promise.all([
+    db.collection(COLLECTION)
+      .where('userId', '==', userId)
+      .where('priority', '==', 'urgent')
+      .orderBy('collectedAt', 'desc')
+      .limit(10)
+      .get(),
+    db.collection(COLLECTION)
+      .where('userId', '==', userId)
+      .where('priority', '==', 'important')
+      .orderBy('collectedAt', 'desc')
+      .limit(10)
+      .get(),
+  ])
+
+  return {
+    urgent: urgentSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as CollectedInfo[],
+    important: importantSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as CollectedInfo[],
+  }
+}
+
+export async function getInfoCount(userId: string): Promise<{ total: number; urgent: number; important: number }> {
+  const db = getFirestore()
+
+  const [totalSnapshot, urgentSnapshot, importantSnapshot] = await Promise.all([
+    db.collection(COLLECTION)
+      .where('userId', '==', userId)
+      .count()
+      .get(),
+    db.collection(COLLECTION)
+      .where('userId', '==', userId)
+      .where('priority', '==', 'urgent')
+      .count()
+      .get(),
+    db.collection(COLLECTION)
+      .where('userId', '==', userId)
+      .where('priority', '==', 'important')
+      .count()
+      .get(),
+  ])
+
+  return {
+    total: totalSnapshot.data().count,
+    urgent: urgentSnapshot.data().count,
+    important: importantSnapshot.data().count,
+  }
+}
+
 export async function getInfosByOshiIds(userId: string, oshiIds: string[], limit: number = 50): Promise<CollectedInfo[]> {
   if (oshiIds.length === 0) {
     return []

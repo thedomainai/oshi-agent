@@ -17,7 +17,8 @@ export const authConfig: NextAuthConfig = {
     authorized({ auth, request }) {
       const { nextUrl } = request
       const isLoggedIn = !!auth?.user
-      const isOnDashboard = nextUrl.pathname.startsWith('/timeline') ||
+      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard') ||
+        nextUrl.pathname.startsWith('/timeline') ||
         nextUrl.pathname.startsWith('/oshi') ||
         nextUrl.pathname.startsWith('/events') ||
         nextUrl.pathname.startsWith('/trip-plans') ||
@@ -30,7 +31,7 @@ export const authConfig: NextAuthConfig = {
         return false
       } else if (isLoggedIn) {
         const baseUrl = process.env.NEXTAUTH_URL || nextUrl.origin
-        return Response.redirect(new URL('/timeline', baseUrl))
+        return Response.redirect(new URL('/dashboard', baseUrl))
       }
       return true
     },
