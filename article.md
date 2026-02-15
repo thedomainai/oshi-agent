@@ -19,10 +19,6 @@ published: true
 - デモサイト: https://oshi-agent-frontend-544358958632.asia-northeast1.run.app
 - GitHubリポジトリ: https://github.com/thedomainai/oshi-agent
 
-## デモ動画
-
-https://www.youtube.com/watch?v=XXXXX
-
 ## 課題の新規性: なぜ「推し活」に Agentic AI が必要なのか
 
 ### 推し活市場の現状
