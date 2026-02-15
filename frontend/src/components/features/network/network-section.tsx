@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,7 +38,7 @@ export function NetworkSection({ oshiId, oshiName }: NetworkSectionProps) {
     fetchNetwork()
   }, [fetchNetwork])
 
-  const handleDiscover = async () => {
+  const handleDiscover = useCallback(async () => {
     try {
       setDiscovering(true)
       setError(null)
@@ -54,7 +54,12 @@ export function NetworkSection({ oshiId, oshiName }: NetworkSectionProps) {
     } finally {
       setDiscovering(false)
     }
-  }
+  }, [oshiId, fetchNetwork])
+
+  const { ring1Count, ring2Count } = useMemo(() => ({
+    ring1Count: nodes.filter((n) => n.ring === 1).length,
+    ring2Count: nodes.filter((n) => n.ring === 2).length,
+  }), [nodes])
 
   if (loading) {
     return (
@@ -66,9 +71,6 @@ export function NetworkSection({ oshiId, oshiName }: NetworkSectionProps) {
       </Card>
     )
   }
-
-  const ring1Count = nodes.filter((n) => n.ring === 1).length
-  const ring2Count = nodes.filter((n) => n.ring === 2).length
 
   return (
     <Card>
