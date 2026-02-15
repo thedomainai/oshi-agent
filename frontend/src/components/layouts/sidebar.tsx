@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
-import { Calendar, DollarSign, Heart, LayoutDashboard, List, Menu, Settings, X, Map } from 'lucide-react'
+import { Calendar, DollarSign, Heart, LayoutDashboard, List, Menu, Network, Settings, X, Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 

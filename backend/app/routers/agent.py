@@ -12,12 +12,14 @@ from app.agents.trip_agent import TripAgent
 from app.dependencies import (
     get_budget_agent,
     get_calendar_agent,
+    get_network_repository,
     get_oshi_repository,
     get_root_agent,
     get_trip_agent,
     get_user_id,
     verify_internal_api_key,
 )
+from app.repositories.network_repository import NetworkRepository
 from app.repositories.oshi_repository import OshiRepository
 
 # ADK は Python 3.10+ が必要。利用可能な場合のみインポート
@@ -105,6 +107,51 @@ class SummaryResponse(BaseModel):
     oshi_name: str
     collected_count: int
     summary: str
+
+
+class NetworkDiscoverRequest(BaseModel):
+    """ネットワーク発見リクエスト"""
+
+    oshi_id: str = Field(..., description="推しID")
+
+
+class NetworkDiscoverResponse(BaseModel):
+    """ネットワーク発見レスポンス"""
+
+    oshi_id: str
+    oshi_name: str
+    discovered_count: int
+    nodes: list[dict[str, Any]]
+
+
+class NetworkNodeResponse(BaseModel):
+    """ネットワークノードレスポンス"""
+
+    id: str
+    name: str
+    node_type: str
+    ring: int
+    relationship: str
+    is_active: bool
+
+
+class NetworkListResponse(BaseModel):
+    """ネットワーク一覧レスポンス"""
+
+    oshi_id: str
+    nodes: list[NetworkNodeResponse]
+
+
+class NetworkScoutResponse(BaseModel):
+    """ネットワークスカウトレスポンス"""
+
+    oshi_id: str
+    oshi_name: str
+    direct_count: int
+    network_count: int
+    total_count: int
+    new_info_ids: list[str]
+    priority_results: dict[str, str]
 
 
 class BudgetRequest(BaseModel):
@@ -391,4 +438,115 @@ async def run_budget(
 
     except Exception as e:
         logger.error("api_budget_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/network/discover", response_model=NetworkDiscoverResponse)
+async def discover_network(
+    request: NetworkDiscoverRequest,
+    user_id: str = Depends(get_user_id),
+    root_agent: RootAgent = Depends(get_root_agent),
+    oshi_repo: OshiRepository = Depends(get_oshi_repository),
+):
+    """ネットワーク自動発見（推しの関連人物・組織・情報源をAIで特定）"""
+    try:
+        oshi = oshi_repo.get_by_id(request.oshi_id)
+        if not oshi or oshi.user_id != user_id:
+            raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
+
+        logger.info(
+            "api_network_discover_start",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+        )
+
+        result = await root_agent.discover_network(request.oshi_id)
+
+        logger.info(
+            "api_network_discover_success",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+            discovered_count=result["discovered_count"],
+        )
+
+        return NetworkDiscoverResponse(**result)
+
+    except ValueError as e:
+        logger.warning("api_network_discover_not_found", error=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("api_network_discover_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/network/{oshi_id}", response_model=NetworkListResponse)
+async def get_network(
+    oshi_id: str,
+    user_id: str = Depends(get_user_id),
+    oshi_repo: OshiRepository = Depends(get_oshi_repository),
+    network_repo: NetworkRepository = Depends(get_network_repository),
+):
+    """推しのネットワーク一覧を取得"""
+    try:
+        oshi = oshi_repo.get_by_id(oshi_id)
+        if not oshi or oshi.user_id != user_id:
+            raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
+
+        nodes = network_repo.get_all_by_oshi(oshi_id)
+
+        return NetworkListResponse(
+            oshi_id=oshi_id,
+            nodes=[
+                NetworkNodeResponse(
+                    id=n.id,
+                    name=n.name,
+                    node_type=n.node_type.value if hasattr(n.node_type, "value") else n.node_type,
+                    ring=n.ring.value if hasattr(n.ring, "value") else n.ring,
+                    relationship=n.relationship,
+                    is_active=n.is_active,
+                )
+                for n in nodes
+            ],
+        )
+
+    except Exception as e:
+        logger.error("api_network_get_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/network/scout", response_model=NetworkScoutResponse)
+async def run_network_scout(
+    request: ScoutRequest,
+    user_id: str = Depends(get_user_id),
+    root_agent: RootAgent = Depends(get_root_agent),
+    oshi_repo: OshiRepository = Depends(get_oshi_repository),
+):
+    """ネットワーク全体をスカウト（通常スカウト + ネットワークノード経由）"""
+    try:
+        oshi = oshi_repo.get_by_id(request.oshi_id)
+        if not oshi or oshi.user_id != user_id:
+            raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
+
+        logger.info(
+            "api_network_scout_start",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+        )
+
+        result = await root_agent.run_network_scout(request.oshi_id)
+
+        logger.info(
+            "api_network_scout_success",
+            user_id=user_id,
+            oshi_id=request.oshi_id,
+            total_count=result["total_count"],
+        )
+
+        return NetworkScoutResponse(**result)
+
+    except ValueError as e:
+        logger.warning("api_network_scout_not_found", error=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("api_network_scout_failed", error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error")

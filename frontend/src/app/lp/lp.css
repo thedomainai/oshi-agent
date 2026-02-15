@@ -1,0 +1,377 @@
+/* ============================================
+   Oshi Agent LP - Visual Design System
+   Theme: "Invisible Guardian" / 見えない守護者
+   ============================================ */
+
+/* --- Color tokens --- */
+:root {
+  --lp-bg: #06060f;
+  --lp-bg-elevated: #0d0d1a;
+  --lp-accent-pink: #ff2d78;
+  --lp-accent-blue: #3b82f6;
+  --lp-accent-purple: #8b5cf6;
+  --lp-urgent: #ef4444;
+  --lp-important: #f59e0b;
+  --lp-normal: #10b981;
+  --lp-glass: rgba(255, 255, 255, 0.03);
+  --lp-glass-border: rgba(255, 255, 255, 0.06);
+  --lp-text-primary: #f0f0f5;
+  --lp-text-secondary: #8888a0;
+}
+
+/* --- Gradient Mesh Background --- */
+@keyframes mesh-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, -50px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+  75% {
+    transform: translate(-40px, -30px) scale(1.02);
+  }
+}
+
+@keyframes mesh-drift-reverse {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-30px, 40px) scale(0.97);
+  }
+  50% {
+    transform: translate(40px, -20px) scale(1.03);
+  }
+  75% {
+    transform: translate(20px, 30px) scale(0.98);
+  }
+}
+
+.lp-mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.lp-mesh-bg::before {
+  content: '';
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  top: -200px;
+  right: -200px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 45, 120, 0.12) 0%,
+    transparent 70%
+  );
+  animation: mesh-drift 20s ease-in-out infinite;
+}
+
+.lp-mesh-bg::after {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  bottom: -100px;
+  left: -150px;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.1) 0%,
+    transparent 70%
+  );
+  animation: mesh-drift-reverse 25s ease-in-out infinite;
+}
+
+.lp-mesh-orb-purple {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  top: 40%;
+  left: 30%;
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.08) 0%,
+    transparent 70%
+  );
+  animation: mesh-drift 30s ease-in-out infinite;
+}
+
+/* --- Float Animation --- */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+/* --- Pulse Ring for Agent Nodes --- */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 45, 120, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 45, 120, 0.6);
+  }
+}
+
+/* --- Scroll Reveal --- */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lp-reveal-scale {
+  opacity: 0;
+  transform: scale(0.9);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-reveal-scale.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --- Glass Card --- */
+.lp-glass {
+  background: var(--lp-glass);
+  border: 1px solid var(--lp-glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.lp-glass-hover {
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    transform 0.3s;
+}
+
+.lp-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-4px);
+}
+
+/* --- Hero Section --- */
+.lp-hero-heading {
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #e0e0ff 50%,
+    var(--lp-accent-pink) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* --- Data Stream Animation --- */
+@keyframes stream-flow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.lp-data-stream {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: stream-flow 3s linear infinite;
+}
+
+/* --- Agent Constellation --- */
+@keyframes orbit-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.lp-orbit-ring {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  animation: orbit-pulse 4s ease-in-out infinite;
+}
+
+/* --- Scan Line Effect --- */
+@keyframes scan-line {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+/* --- Particle --- */
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(var(--dx, 20px), var(--dy, -40px));
+  }
+}
+
+/* --- Typing Cursor --- */
+@keyframes blink-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.lp-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--lp-accent-pink);
+  animation: blink-cursor 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+}
+
+/* --- Priority Badge --- */
+.lp-badge-urgent {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.lp-badge-important {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+}
+
+.lp-badge-normal {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+/* --- Section Divider --- */
+.lp-section-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+}
+
+/* --- Scroll Indicator --- */
+@keyframes scroll-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 1;
+  }
+}
+
+.lp-scroll-indicator {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .lp-mesh-bg::before {
+    width: 400px;
+    height: 400px;
+  }
+  .lp-mesh-bg::after {
+    width: 300px;
+    height: 300px;
+  }
+  .lp-mesh-orb-purple {
+    width: 250px;
+    height: 250px;
+  }
+}
+
+/* --- Smooth Scroll --- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* --- Selection --- */
+::selection {
+  background: rgba(255, 45, 120, 0.3);
+  color: #fff;
+}

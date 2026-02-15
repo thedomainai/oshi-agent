@@ -4,6 +4,7 @@ import { getOshis } from '@/lib/firestore/oshis'
 import { getAlertInfos, getInfoCount, getInfos } from '@/lib/firestore/infos'
 import { AlertBanner } from '@/components/features/dashboard/alert-banner'
 import { DashboardStats } from '@/components/features/dashboard/dashboard-stats'
+import { NetworkSection } from '@/components/features/network/network-section'
 import { TimelineItem } from '@/components/features/timeline/timeline-item'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,9 @@ export default async function DashboardPage() {
         totalInfos={infoCount.total}
         alertsCaught={infoCount.urgent + infoCount.important}
       />
+
+      {/* 推しネットワーク（最初の推しを表示） */}
+      <NetworkSection oshiId={oshis[0].id} oshiName={oshis[0].name} />
 
       <div>
         <div className="flex items-center justify-between mb-4">

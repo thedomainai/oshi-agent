@@ -1,13 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card'
-import { Heart, Newspaper, Shield } from 'lucide-react'
+import { Heart, Network, Newspaper, Shield } from 'lucide-react'
 
 interface DashboardStatsProps {
   oshiCount: number
   totalInfos: number
   alertsCaught: number
+  networkNodes?: number
 }
 
-export function DashboardStats({ oshiCount, totalInfos, alertsCaught }: DashboardStatsProps) {
+export function DashboardStats({ oshiCount, totalInfos, alertsCaught, networkNodes }: DashboardStatsProps) {
   const stats = [
     {
       label: '登録中の推し',
@@ -15,6 +16,13 @@ export function DashboardStats({ oshiCount, totalInfos, alertsCaught }: Dashboar
       icon: Heart,
       color: 'text-pink-600 dark:text-pink-400',
       bg: 'bg-pink-50 dark:bg-pink-950',
+    },
+    {
+      label: '監視ネットワーク',
+      value: `${networkNodes ?? 0}ノード`,
+      icon: Network,
+      color: 'text-cyan-600 dark:text-cyan-400',
+      bg: 'bg-cyan-50 dark:bg-cyan-950',
     },
     {
       label: '収集した情報',
@@ -33,7 +41,7 @@ export function DashboardStats({ oshiCount, totalInfos, alertsCaught }: Dashboar
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {stats.map((stat) => {
         const Icon = stat.icon
         return (

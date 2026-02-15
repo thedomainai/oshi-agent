@@ -30,6 +30,7 @@ class CollectedInfoCreate(BaseModel):
     url: str = Field(...)
     snippet: Optional[str] = Field(None, max_length=1000)
     oshi_id: str = Field(..., description="紐づく推しID")
+    source_node: Optional[str] = Field(None, description="情報源ネットワークノード名")
 
 
 class CollectedInfoModel(CollectedInfoBase):
@@ -37,6 +38,7 @@ class CollectedInfoModel(CollectedInfoBase):
 
     id: str = Field(..., description="情報ID")
     oshi_id: str = Field(..., description="紐づく推しID")
+    source_node: Optional[str] = Field(None, description="情報源ネットワークノード名")
     collected_at: datetime = Field(..., description="収集日時")
     updated_at: datetime = Field(..., description="更新日時")
 

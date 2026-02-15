@@ -320,6 +320,98 @@ URL: {url}{snippet_section}
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
+    def discover_network(
+        self, oshi_name: str, category: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        """推しのネットワーク（関連人物・組織・情報源）を自動発見
+
+        Args:
+            oshi_name: 推しの名前
+            category: カテゴリ（アイドル、声優 等）
+
+        Returns:
+            発見されたノードのリスト
+        """
+        try:
+            category_hint = f"（カテゴリ: {category}）" if category else ""
+
+            prompt = f"""あなたは推し活（ファン活動）の情報収集ネットワーク構築の専門家です。
+「{oshi_name}」{category_hint}に関連する人物・組織・情報源を洗い出してください。
+
+## 発見すべきノードの種類
+
+**Ring 1（直接関係者）**:
+- member: グループメンバー、共演者、バンドメンバー
+- staff: マネージャー、スタイリスト、プロデューサー、振付師、カメラマン
+- org: 所属事務所、レーベル、制作会社
+
+**Ring 2（周辺ネットワーク）**:
+- fan: 速報系ファンアカウント、まとめ情報、ファンサイト管理者
+- venue: よく使う会場、ライブハウス、イベント会場
+- collab: コラボ相手、共演アーティスト、ブランド
+- media: 出演番組、連載メディア、ラジオ
+
+## 出力ルール
+- 8〜15個のノードを出力してください
+- 各ノードに、そのノードの最新情報を検索するための検索クエリを2〜3個含めてください
+- 実在する人物・組織の場合はできるだけ正確な名前を使ってください
+- 一般的すぎるノード（「ファン」「メディア」等）は避け、具体的な名称にしてください
+
+以下のJSON配列形式のみで回答してください:
+[
+  {{
+    "name": "ノード名",
+    "node_type": "member|staff|org|fan|venue|collab|media",
+    "ring": 1 or 2,
+    "relationship": "推しとの関係（20字以内）",
+    "search_queries": ["検索クエリ1", "検索クエリ2"]
+  }}
+]
+"""
+
+            logger.info(
+                "discover_network_start",
+                oshi_name=oshi_name,
+                category=category,
+            )
+            response = self.model.generate_content(prompt)
+            result_text = response.text.strip()
+
+            # JSONパース
+            if result_text.startswith("```json"):
+                result_text = result_text[7:]
+            if result_text.startswith("```"):
+                result_text = result_text[3:]
+            if result_text.endswith("```"):
+                result_text = result_text[:-3]
+            result_text = result_text.strip()
+
+            nodes = json.loads(result_text)
+
+            if not isinstance(nodes, list):
+                logger.warning("discover_network_invalid_format", result=result_text[:200])
+                return []
+
+            logger.info(
+                "discover_network_success",
+                oshi_name=oshi_name,
+                node_count=len(nodes),
+            )
+            return nodes
+
+        except Exception as e:
+            logger.error(
+                "discover_network_failed",
+                oshi_name=oshi_name,
+                error=str(e),
+            )
+            return []
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
+    )
     def generate_budget_advice(
         self, expenses: list[dict[str, Any]], budget: Optional[int] = None
     ) -> str:

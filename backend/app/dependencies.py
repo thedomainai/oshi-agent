@@ -18,6 +18,7 @@ from app.repositories.expense_repository import ExpenseRepository
 from app.repositories.firestore_client import get_firestore_client
 from app.repositories.info_repository import InfoRepository
 from app.repositories.job_repository import JobRepository
+from app.repositories.network_repository import NetworkRepository
 from app.repositories.oshi_repository import OshiRepository
 from app.repositories.trip_repository import TripRepository
 
@@ -59,6 +60,11 @@ def get_job_repository():
     return JobRepository(get_db())
 
 
+def get_network_repository():
+    """NetworkRepositoryを取得"""
+    return NetworkRepository(get_db())
+
+
 # 外部APIクライアント
 def get_google_search_client():
     """GoogleSearchClientを取得"""
@@ -82,6 +88,7 @@ def get_scout_agent():
         oshi_repo=get_oshi_repository(),
         info_repo=get_info_repository(),
         search_client=get_google_search_client(),
+        network_repo=get_network_repository(),
     )
 
 
@@ -126,6 +133,7 @@ def get_root_agent():
         priority_agent=get_priority_agent(),
         gemini_client=get_gemini_client(),
         info_repo=get_info_repository(),
+        network_repo=get_network_repository(),
     )
 
 

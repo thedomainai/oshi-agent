@@ -25,10 +25,14 @@ export const authConfig: NextAuthConfig = {
         nextUrl.pathname.startsWith('/expenses') ||
         nextUrl.pathname.startsWith('/settings') ||
         nextUrl.pathname.startsWith('/setup')
+      const isPublicPage = nextUrl.pathname.startsWith('/lp') ||
+        nextUrl.pathname.startsWith('/login')
 
       if (isOnDashboard) {
         if (isLoggedIn) return true
         return false
+      } else if (isPublicPage) {
+        return true
       } else if (isLoggedIn) {
         const baseUrl = process.env.NEXTAUTH_URL || nextUrl.origin
         return Response.redirect(new URL('/dashboard', baseUrl))

@@ -90,3 +90,65 @@ export async function generateBudgetReport(userId: string, data: GenerateBudgetR
     body: JSON.stringify(data),
   })
 }
+
+// ネットワーク関連
+
+export interface NetworkNode {
+  id: string
+  name: string
+  node_type: string
+  ring: number
+  relationship: string
+  is_active: boolean
+}
+
+interface NetworkDiscoverResponse {
+  oshi_id: string
+  oshi_name: string
+  discovered_count: number
+  nodes: Array<{
+    id: string
+    name: string
+    node_type: string
+    ring: number
+    relationship: string
+  }>
+}
+
+interface NetworkListResponse {
+  oshi_id: string
+  nodes: NetworkNode[]
+}
+
+interface NetworkScoutResponse {
+  oshi_id: string
+  oshi_name: string
+  direct_count: number
+  network_count: number
+  total_count: number
+  new_info_ids: string[]
+  priority_results: Record<string, string>
+}
+
+export async function discoverNetwork(userId: string, oshiId: string): Promise<NetworkDiscoverResponse> {
+  return apiRequest<NetworkDiscoverResponse>('/agent/network/discover', {
+    method: 'POST',
+    userId,
+    body: JSON.stringify({ oshi_id: oshiId }),
+  })
+}
+
+export async function getNetwork(userId: string, oshiId: string): Promise<NetworkListResponse> {
+  return apiRequest<NetworkListResponse>(`/agent/network/${oshiId}`, {
+    method: 'GET',
+    userId,
+  })
+}
+
+export async function runNetworkScout(userId: string, oshiId: string): Promise<NetworkScoutResponse> {
+  return apiRequest<NetworkScoutResponse>('/agent/network/scout', {
+    method: 'POST',
+    userId,
+    body: JSON.stringify({ oshi_id: oshiId }),
+  })
+}
