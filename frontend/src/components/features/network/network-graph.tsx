@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils/cn'
+import { TYPE_CONFIG } from '@/lib/constants/network-types'
 
 export interface NetworkNodeData {
   id: string
@@ -15,16 +16,6 @@ export interface NetworkNodeData {
 interface NetworkGraphProps {
   nodes: NetworkNodeData[]
   oshiName: string
-}
-
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  member: { label: 'メンバー', color: '#3b82f6' },
-  staff: { label: 'スタッフ', color: '#06b6d4' },
-  org: { label: '組織', color: '#f59e0b' },
-  fan: { label: 'ファン情報', color: '#10b981' },
-  venue: { label: '会場', color: '#8b5cf6' },
-  collab: { label: 'コラボ', color: '#f97316' },
-  media: { label: 'メディア', color: '#14b8a6' },
 }
 
 const RING1_RADIUS = 110

@@ -21,6 +21,7 @@ from app.dependencies import (
 )
 from app.repositories.network_repository import NetworkRepository
 from app.repositories.oshi_repository import OshiRepository
+from app.utils.enum_utils import enum_to_value
 
 # ADK は Python 3.10+ が必要。利用可能な場合のみインポート
 try:
@@ -500,8 +501,8 @@ async def get_network(
                 NetworkNodeResponse(
                     id=n.id,
                     name=n.name,
-                    node_type=n.node_type.value if hasattr(n.node_type, "value") else n.node_type,
-                    ring=n.ring.value if hasattr(n.ring, "value") else n.ring,
+                    node_type=enum_to_value(n.node_type),
+                    ring=enum_to_value(n.ring),
                     relationship=n.relationship,
                     is_active=n.is_active,
                 )

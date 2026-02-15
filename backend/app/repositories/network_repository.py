@@ -6,6 +6,7 @@ import structlog
 from google.cloud import firestore
 
 from app.models.network_node import NetworkNodeCreate, NetworkNodeModel
+from app.utils.enum_utils import enum_to_value
 
 logger = structlog.get_logger(__name__)
 
@@ -97,8 +98,8 @@ class NetworkRepository:
             now = datetime.utcnow()
             doc_data = node_data.model_dump()
             # Enumを値に変換
-            doc_data["node_type"] = doc_data["node_type"].value if hasattr(doc_data["node_type"], "value") else doc_data["node_type"]
-            doc_data["ring"] = doc_data["ring"].value if hasattr(doc_data["ring"], "value") else doc_data["ring"]
+            doc_data["node_type"] = enum_to_value(doc_data["node_type"])
+            doc_data["ring"] = enum_to_value(doc_data["ring"])
             doc_data.update(
                 {
                     "discovered_at": now,
@@ -132,8 +133,8 @@ class NetworkRepository:
 
             for node_data in nodes_data:
                 doc_data = node_data.model_dump()
-                doc_data["node_type"] = doc_data["node_type"].value if hasattr(doc_data["node_type"], "value") else doc_data["node_type"]
-                doc_data["ring"] = doc_data["ring"].value if hasattr(doc_data["ring"], "value") else doc_data["ring"]
+                doc_data["node_type"] = enum_to_value(doc_data["node_type"])
+                doc_data["ring"] = enum_to_value(doc_data["ring"])
                 doc_data.update(
                     {
                         "discovered_at": now,

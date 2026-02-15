@@ -6,20 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { NetworkGraph, type NetworkNodeData } from './network-graph'
 import { Loader2, Network, RefreshCw, Zap } from 'lucide-react'
+import { TYPE_LABELS } from '@/lib/constants/network-types'
 
 interface NetworkSectionProps {
   oshiId: string
   oshiName: string
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  member: 'メンバー',
-  staff: 'スタッフ',
-  org: '組織',
-  fan: 'ファン情報',
-  venue: '会場',
-  collab: 'コラボ',
-  media: 'メディア',
 }
 
 export function NetworkSection({ oshiId, oshiName }: NetworkSectionProps) {

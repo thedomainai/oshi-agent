@@ -15,6 +15,7 @@ from app.models.workflow_results import (
 from app.repositories.info_repository import InfoRepository
 from app.repositories.network_repository import NetworkRepository
 from app.repositories.oshi_repository import OshiRepository
+from app.utils.enum_utils import enum_to_value
 
 logger = structlog.get_logger(__name__)
 
@@ -254,8 +255,8 @@ class RootAgent:
                     {
                         "id": n.id,
                         "name": n.name,
-                        "node_type": n.node_type.value if hasattr(n.node_type, "value") else n.node_type,
-                        "ring": n.ring.value if hasattr(n.ring, "value") else n.ring,
+                        "node_type": enum_to_value(n.node_type),
+                        "ring": enum_to_value(n.ring),
                         "relationship": n.relationship,
                     }
                     for n in created_nodes
