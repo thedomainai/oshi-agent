@@ -16,6 +16,13 @@ from app.models.trip_plan import (
     TripPlanCreate,
     TripPlanModel,
 )
+from app.models.workflow_results import (
+    DiscoveredNode,
+    EventInfo,
+    NetworkDiscoverResult,
+    NetworkScoutResult,
+    ScoutWorkflowResult,
+)
 
 __all__ = [
     "OshiModel",
@@ -39,4 +46,9 @@ __all__ = [
     "NetworkNodeCreate",
     "NodeType",
     "NodeRing",
+    "ScoutWorkflowResult",
+    "NetworkScoutResult",
+    "NetworkDiscoverResult",
+    "EventInfo",
+    "DiscoveredNode",
 ]
