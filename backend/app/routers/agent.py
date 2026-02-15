@@ -183,7 +183,7 @@ async def run_scout(
     try:
         # ユーザーが推しの所有者であることを検証
         oshi = oshi_repo.get_by_id(request.oshi_id)
-        if not oshi or oshi.get("user_id") != user_id:
+        if not oshi or oshi.user_id != user_id:
             raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
 
         logger.info(
@@ -235,7 +235,7 @@ async def run_scout_adk(
 
     try:
         oshi = oshi_repo.get_by_id(request.oshi_id)
-        if not oshi or oshi.get("user_id") != user_id:
+        if not oshi or oshi.user_id != user_id:
             raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
 
         logger.info(
@@ -295,7 +295,7 @@ async def run_summary(
     try:
         # ユーザーが推しの所有者であることを検証
         oshi = oshi_repo.get_by_id(request.oshi_id)
-        if not oshi or oshi.get("user_id") != user_id:
+        if not oshi or oshi.user_id != user_id:
             raise HTTPException(status_code=403, detail="この推しへのアクセス権限がありません")
 
         logger.info(

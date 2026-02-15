@@ -7,6 +7,11 @@ from app.agents.priority_agent import PriorityAgent
 from app.agents.scout_agent import ScoutAgent
 from app.external.gemini_client import GeminiClient
 from app.models.network_node import NetworkNodeCreate, NodeRing, NodeType
+from app.models.workflow_results import (
+    NetworkDiscoverResult,
+    NetworkScoutResult,
+    ScoutWorkflowResult,
+)
 from app.repositories.info_repository import InfoRepository
 from app.repositories.network_repository import NetworkRepository
 from app.repositories.oshi_repository import OshiRepository
@@ -33,7 +38,7 @@ class RootAgent:
         self.info_repo = info_repo
         self.network_repo = network_repo
 
-    async def run_scout_workflow(self, oshi_id: str) -> dict[str, Any]:
+    async def run_scout_workflow(self, oshi_id: str) -> ScoutWorkflowResult:
         """指定された推しのScoutワークフローを実行
 
         1. Scout Agent で情報収集
@@ -43,7 +48,10 @@ class RootAgent:
             oshi_id: 推しID
 
         Returns:
-            実行結果（収集件数、判定結果など）
+            ScoutWorkflowResult: 実行結果（収集件数、新規情報ID、重要度判定結果）
+
+        Raises:
+            ValueError: 指定された推しが存在しない場合
         """
         try:
             logger.info(
@@ -71,20 +79,19 @@ class RootAgent:
                     new_info_ids
                 )
 
-            result = {
-                "oshi_id": oshi_id,
-                "oshi_name": oshi.name,
-                "collected_count": len(new_info_ids),
-                "new_info_ids": new_info_ids,
-                "priority_results": priority_results,
-            }
-
             logger.info(
                 "root_scout_workflow_success",
                 oshi_id=oshi_id,
                 collected_count=len(new_info_ids),
             )
-            return result
+
+            return ScoutWorkflowResult(
+                oshi_id=oshi_id,
+                oshi_name=oshi.name,
+                collected_count=len(new_info_ids),
+                new_info_ids=new_info_ids,
+                priority_results=priority_results,
+            )
 
         except Exception as e:
             logger.error(
@@ -160,7 +167,7 @@ class RootAgent:
             )
             raise
 
-    async def discover_network(self, oshi_id: str) -> dict[str, Any]:
+    async def discover_network(self, oshi_id: str) -> NetworkDiscoverResult:
         """推しのネットワークを自動発見
 
         Gemini APIで推しに関連する人物・組織・情報源を特定し、
@@ -170,7 +177,10 @@ class RootAgent:
             oshi_id: 推しID
 
         Returns:
-            発見結果（ノード数、ノード一覧）
+            NetworkDiscoverResult: 発見結果（ノード数、ノード一覧）
+
+        Raises:
+            ValueError: 推しが存在しない、またはNetworkRepositoryが未設定の場合
         """
         try:
             logger.info("root_discover_network_start", oshi_id=oshi_id)
@@ -190,12 +200,12 @@ class RootAgent:
 
             if not raw_nodes:
                 logger.info("root_discover_network_no_results", oshi_id=oshi_id)
-                return {
-                    "oshi_id": oshi_id,
-                    "oshi_name": oshi.name,
-                    "discovered_count": 0,
-                    "nodes": [],
-                }
+                return NetworkDiscoverResult(
+                    oshi_id=oshi_id,
+                    oshi_name=oshi.name,
+                    discovered_count=0,
+                    nodes=[],
+                )
 
             # 既存ノードとの重複を排除して保存
             created_nodes = []
@@ -230,11 +240,17 @@ class RootAgent:
                 created = self.network_repo.create(node_data)
                 created_nodes.append(created)
 
-            result = {
-                "oshi_id": oshi_id,
-                "oshi_name": oshi.name,
-                "discovered_count": len(created_nodes),
-                "nodes": [
+            logger.info(
+                "root_discover_network_success",
+                oshi_id=oshi_id,
+                discovered_count=len(created_nodes),
+            )
+
+            return NetworkDiscoverResult(
+                oshi_id=oshi_id,
+                oshi_name=oshi.name,
+                discovered_count=len(created_nodes),
+                nodes=[
                     {
                         "id": n.id,
                         "name": n.name,
@@ -244,14 +260,7 @@ class RootAgent:
                     }
                     for n in created_nodes
                 ],
-            }
-
-            logger.info(
-                "root_discover_network_success",
-                oshi_id=oshi_id,
-                discovered_count=len(created_nodes),
             )
-            return result
 
         except Exception as e:
             logger.error(
@@ -261,7 +270,7 @@ class RootAgent:
             )
             raise
 
-    async def run_network_scout(self, oshi_id: str) -> dict[str, Any]:
+    async def run_network_scout(self, oshi_id: str) -> NetworkScoutResult:
         """ネットワーク全体をスカウト
 
         1. ネットワークノード経由で情報収集
@@ -272,7 +281,10 @@ class RootAgent:
             oshi_id: 推しID
 
         Returns:
-            実行結果
+            NetworkScoutResult: 実行結果（direct/network別の収集件数、重要度判定結果）
+
+        Raises:
+            ValueError: 指定された推しが存在しない場合
         """
         try:
             logger.info("root_network_scout_start", oshi_id=oshi_id)
@@ -304,23 +316,22 @@ class RootAgent:
                     all_new_ids
                 )
 
-            result = {
-                "oshi_id": oshi_id,
-                "oshi_name": oshi.name,
-                "direct_count": len(direct_ids),
-                "network_count": len(network_ids),
-                "total_count": len(all_new_ids),
-                "new_info_ids": all_new_ids,
-                "priority_results": priority_results,
-            }
-
             logger.info(
                 "root_network_scout_success",
                 oshi_id=oshi_id,
                 direct_count=len(direct_ids),
                 network_count=len(network_ids),
             )
-            return result
+
+            return NetworkScoutResult(
+                oshi_id=oshi_id,
+                oshi_name=oshi.name,
+                direct_count=len(direct_ids),
+                network_count=len(network_ids),
+                total_count=len(all_new_ids),
+                new_info_ids=all_new_ids,
+                priority_results=priority_results,
+            )
 
         except Exception as e:
             logger.error(
